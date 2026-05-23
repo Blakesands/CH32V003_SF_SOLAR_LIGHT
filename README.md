@@ -17,6 +17,7 @@ Automated Functions
 Sleep Timer
 
 The timer automatically disables the light after a set duration.
+
     1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the blue Mode Indicator begins blinking.
     2. Release button after the desired number of blinks:
         ◦  1 Blink: 1 Hour
@@ -28,6 +29,7 @@ The timer automatically disables the light after a set duration.
 Battery Status Indicator
 
 The red Battery Indicator communicates the following states:
+
     •  Slow Blink: Battery is low. Maximum brightness is restricted to the "Medium" setting.
     •  Rapid Flash: Battery is critical. Device will shut down automatically. Solar charging is required before further use.
     •  Periodic "Blip" (every 4 seconds): Battery is charging via the solar panel.

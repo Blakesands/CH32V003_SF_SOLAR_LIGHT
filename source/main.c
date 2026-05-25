@@ -110,9 +110,9 @@ int main(void){
         }
 
         /* 3. Automatic Dimming (When no user timer is set) */
-        if (timer_expiry == 0 && level_idx > 1 && !is_pressing) {
+        if (timer_expiry == 0 && level_idx > 0 && !is_pressing) {
             if (GetTick() - last_level_change_tick >= (ONE_HOUR_MS / 3)) {
-                level_idx = (level_idx == 3) ? 2 : 1;
+                level_idx--;
                 PWM_LED(brightness[level_idx]);
                 last_level_change_tick = GetTick();
             }

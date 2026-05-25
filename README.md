@@ -14,17 +14,17 @@ Automated Functions
     •  Automatic Dimming: If no timer is active, the device reduces brightness by one level every 20 minutes to preserve battery.
     •  Safety Lock: If the button is depressed for more than 30 seconds, inputs are ignored until the button is released.
     
-Sleep Timer
+Timer
 
-The timer automatically disables the light after a set duration.
+The timer automatically turns off the light after a set duration.
 
-    1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the blue Mode Indicator begins blinking.
+    1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the Timer Indicator LED begins blinking.
     2. Release button after the desired number of blinks:
         ◦  1 Blink: 1 Hour
         ◦  2 Blinks: 2 Hours
         ◦  3 Blinks: 3 Hours
         ◦  4 Blinks: 4 Hours
-    3. The blue indicator remains illuminated while the timer is active. Manual power or brightness changes cancel the timer.
+    3. The Timer Indicator LED remains illuminated while the timer is active. Manual power or brightness changes cancel the timer.
     
 Battery Status Indicator
 

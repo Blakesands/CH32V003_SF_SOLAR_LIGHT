@@ -6,12 +6,12 @@ Power Control
     •  Power On: Press once. Default is low brightness.
     •  Adjust Brightness: Press repeatedly to cycle: Low ➜ Medium ➜ High.
     •  Power Off:
-        ◦  If the light has been active for more than 2 seconds, press once to turn off.
+        ◦  If the light has been active for more than 3 seconds, press once to turn off.
         ◦  Otherwise, cycle through brightness levels until the light turns off.
         
 Automated Functions
 
-    •  Automatic Dimming: If no timer is active, the device reduces brightness by one level every 30 minutes to preserve battery.
+    •  Automatic Dimming: If no timer is active, the device reduces brightness by one level every 20 minutes to preserve battery.
     •  Safety Lock: If the button is depressed for more than 30 seconds, inputs are ignored until the button is released.
     
 Sleep Timer

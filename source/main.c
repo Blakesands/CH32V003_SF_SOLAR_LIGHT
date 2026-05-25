@@ -10,18 +10,18 @@ volatile uint8_t is_pressing = 0;
 volatile uint32_t press_start = 0;
 volatile uint32_t timer_expiry = 0;
 volatile uint32_t last_level_change_tick = 0;
-#define ONE_HOUR_MS 3600000UL /// *1000 for production TODO
+#define ONE_HOUR_MS 3600000UL
 
 /* Battery Monitoring Globals */
 volatile uint8_t battery_status = 0; // 0: OK, 1: Low (<3.15V), 2: Critical (<3.0V)
-#define VDD_LOW_THRESHOLD      390   // (1.2V / 3.15V) * 1023
-#define VDD_CRITICAL_THRESHOLD 409   // (1.2V / 3.0V) * 1023
+#define VDD_LOW_THRESHOLD      409   // (1.2V / 3V) * 1023
+#define VDD_CRITICAL_THRESHOLD 444   // (1.2V / 2.7V) * 1023
 #define VDD_RECOVERY_THRESHOLD 361   // (1.2V / 3.4V) * 1023
-static uint8_t batt_state = 0;       // 0: Idle, 1: Waiting for ADC stabilization
+static uint8_t batt_state = 0;       // 0: Idle, 1: Waiting for ADC stabilisation
 static uint32_t batt_timer = 0;
 
 /* Solar Monitoring */
-#define CHARGE_RESISTOR_OHMS 10      // Update to your actual resistor value
+#define CHARGE_RESISTOR_OHMS 2
 volatile int16_t charge_current_ma = 0;
 
 /* Forward Declarations */
@@ -56,12 +56,12 @@ int main(void){
         /* 1. Periodic Battery Check State Machine (Non-blocking) */
         if (batt_state == 0) {
             if (GetTick() - batt_timer > 10000) {
-                ADC_Cmd(ADC1, ENABLE); // Turn on ADC to stabilize
+                ADC_Cmd(ADC1, ENABLE); // Turn on ADC to stabilise
                 batt_timer = GetTick();
                 batt_state = 1;
             }
         } else if (batt_state == 1) {
-            if (GetTick() - batt_timer >= 1) { // 1ms stabilization wait via ms_ticks
+            if (GetTick() - batt_timer >= 1) { // 1ms stabilisation wait via ms_ticks
                 battery_status = Check_Battery(); 
                 ADC_Cmd(ADC1, DISABLE); // Shut down ADC immediately to save power
                 
@@ -111,7 +111,7 @@ int main(void){
 
         /* 3. Automatic Dimming (When no user timer is set) */
         if (timer_expiry == 0 && level_idx > 1 && !is_pressing) {
-            if (GetTick() - last_level_change_tick >= (ONE_HOUR_MS / 2)) {
+            if (GetTick() - last_level_change_tick >= (ONE_HOUR_MS / 3)) {
                 level_idx = (level_idx == 3) ? 2 : 1;
                 PWM_LED(brightness[level_idx]);
                 last_level_change_tick = GetTick();
@@ -291,7 +291,7 @@ void EXTI7_0_IRQHandler(void)
                     GPIO_WriteBit(GPIOC, GPIO_Pin_1, Bit_RESET);
 
                     /* Smart Off: If ON for > 2s, next press turns it OFF */
-                    if (level_idx != 0 && (now - last_level_change_tick) > 2000) {
+                    if (level_idx != 0 && (now - last_level_change_tick) > 3000) {
                         level_idx = 0;
                     } else {
                         level_idx = (level_idx + 1) % num_levels;
@@ -386,12 +386,12 @@ uint8_t Check_Battery(void) {
     uint32_t va2_sum = 0;
     
     /* Sample internal reference and Solar Divider (A0/PA2) */
-    for(int i=0; i<8; i++) {
+    for(int i=0; i<32; i++) { // Increased oversampling for 1 ohm stability
         vref_sum += Get_ADC_Val(ADC_Channel_Vrefint);
         va2_sum += Get_ADC_Val(ADC_Channel_0); 
     }
-    uint16_t vref_avg = vref_sum >> 3;
-    uint16_t va2_avg = va2_sum >> 3;
+    uint16_t vref_avg = vref_sum >> 5; // Divide by 32
+    uint16_t va2_avg = va2_sum >> 5;   // Divide by 32
 
     /* 1. Calculate Voltages in mV */
     /* VDD = (1.2V * 1023) / ADC_Vref */

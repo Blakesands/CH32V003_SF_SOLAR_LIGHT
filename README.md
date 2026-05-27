@@ -32,8 +32,8 @@ The red Battery Indicator communicates the following states:
 
     •  Slow Blink: Battery is low. Maximum brightness is restricted to the "Medium" setting.
     •  Rapid Flash: Battery is critical. Device will shut down automatically. Solar charging is required before further use.
-    •  Periodic "Blip" (every 4 seconds): Battery is charging via the solar panel.
+    •  Periodic "Blip" (every 4 seconds): Battery is trickle charging via the solar panel.
     
 Solar Charging
 
-Place the solar panel in direct sunlight. Charging is confirmed by the periodic flash of the Battery Indicator.
+Turn the light off. Place the solar panel in direct sunlight. Charging is confirmed by the periodic flash of the Battery Indicator, double flash indicates >10mA charge current.

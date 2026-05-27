@@ -12,17 +12,18 @@ volatile uint32_t timer_expiry = 0;
 volatile uint32_t last_level_change_tick = 0;
 #define ONE_HOUR_MS 3600000UL
 
-/* Battery Monitoring Globals */
-volatile uint8_t battery_status = 0; // 0: OK, 1: Low (<3.15V), 2: Critical (<3.0V)
+/* Battery Monitoring Globals - Compares Vdd to 1.2V internal reference*/
+volatile uint8_t battery_status = 0; // 0: OK, 1: Low (<3V), 2: Critical (<2.7V)
 #define VDD_LOW_THRESHOLD      409   // (1.2V / 3V) * 1023
 #define VDD_CRITICAL_THRESHOLD 444   // (1.2V / 2.7V) * 1023
 #define VDD_RECOVERY_THRESHOLD 361   // (1.2V / 3.4V) * 1023
 static uint8_t batt_state = 0;       // 0: Idle, 1: Waiting for ADC stabilisation
-static uint32_t batt_timer = 0;
+static uint32_t batt_timer = 0;      // Initialized properly in main()
 
 /* Solar Monitoring */
 #define CHARGE_RESISTOR_OHMS 2
 volatile int16_t charge_current_ma = 0;
+volatile uint8_t is_charging = 0;
 
 /* Forward Declarations */
 void PWM_LED(u16 duty);
@@ -30,6 +31,7 @@ void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_Init_Tick(void);
 uint32_t GetTick(void);
 void EXTI7_0_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void AWU_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void IWDG_Config(void);
 void Button_Init(void);
 void LED_Init(void);
@@ -37,6 +39,7 @@ void ADC_Init_Vdd(void);
 uint16_t Get_ADC_Val(uint8_t ch);
 uint8_t Check_Battery(void);
 void Enter_Deep_Sleep(void);
+void Post_System_Setup(void);
 
 int main(void){
 
@@ -47,9 +50,25 @@ int main(void){
     LED_Init();
     TIM2_Init_Tick();
     ADC_Init_Vdd();
+
+    /* Configure AWU Interrupt in PFIC and EXTI to allow wake-up from Standby */
+    // These are persistent configurations and should be set once.
+    {
+        NVIC_InitTypeDef NVIC_InitStructure = {0};
+        NVIC_InitStructure.NVIC_IRQChannel = AWU_IRQn;
+        NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+        NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+        NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+        NVIC_Init(&NVIC_InitStructure);
+        EXTI->INTENR |= EXTI_Line9; // Auto-Wakeup is routed to EXTI Line 9
+    }
+
     Button_Init();
     __enable_irq();
-
+    
+    /* Wait for power rail and internal reference stabilization on cold boot (approx 100ms) */
+    for(volatile uint32_t i=0; i<400000; i++); 
+    Post_System_Setup(); // Perform initial setup and battery check
     while(1){
         IWDG_ReloadCounter(); /* Feed the watchdog every loop iteration */
 
@@ -79,21 +98,35 @@ int main(void){
         /* 2. Critical Battery Shutdown Handling */
         static uint32_t shutdown_tick = 0;
         if (battery_status == 2) {
-            if (shutdown_tick == 0) {
-                shutdown_tick = GetTick();
-                PWM_LED(0);   // Stop main light immediately
-                level_idx = 0; // Reset state
-                last_level_change_tick = GetTick();
-            }
+            // If charging, do not enter shutdown handling. Let the charge blip run (via TIM2_IRQHandler).
+            if (is_charging) {
+                shutdown_tick = 0; // Reset shutdown timer
+                // The main loop will then hit __WFI() and stay in shallow sleep.
+            } else { // Battery is critical and not charging
+                // If main light is off, immediately enter deep sleep without flashing
+                if (level_idx == 0) {
+                    shutdown_tick = 0; // Reset for next time
+                    Enter_Deep_Sleep();
+                    continue; // Skip the rest of the loop iteration
+                }
 
-            uint32_t elapsed = GetTick() - shutdown_tick;
-            if (elapsed < 480) { /* 3 cycles of (60ms ON, 100ms OFF) = 480ms */
-                GPIO_WriteBit(GPIOC, GPIO_Pin_2, (elapsed % 160 < 60) ? Bit_SET : Bit_RESET);
-            } else {
-                IWDG_ReloadCounter(); // Final feed before sleep
-                shutdown_tick = 0;
-                Enter_Deep_Sleep();
-                continue; /* Re-evaluate battery after wake-up button press */
+                // If light is on, flash the critical battery LED for a short period, then enter deep sleep
+                if (shutdown_tick == 0) {
+                    shutdown_tick = GetTick();
+                    PWM_LED(0);   // Stop main light immediately
+                    level_idx = 0; // Reset state
+                    last_level_change_tick = GetTick();
+                }
+
+                uint32_t elapsed = GetTick() - shutdown_tick;
+                if (elapsed < 480) { /* 3 cycles of (60ms ON, 100ms OFF) = 480ms */
+                    GPIO_WriteBit(GPIOC, GPIO_Pin_2, (elapsed % 160 < 60) ? Bit_SET : Bit_RESET);
+                } else {
+                    IWDG_ReloadCounter(); // Final feed before sleep
+                    shutdown_tick = 0;
+                    Enter_Deep_Sleep();
+                    continue; /* Re-evaluate battery after wake-up button press */
+                }
             }
         } else {
             shutdown_tick = 0;
@@ -124,8 +157,11 @@ int main(void){
         }
 
         /* 5. Idle Standby Handling (When light is off and no active timer) */
-        /* Stay in Sleep mode (WFI) if charging to show the indicator blip */
-        if (level_idx == 0 && timer_expiry == 0 && !is_pressing && battery_status != 2 && charge_current_ma <= 0) {
+        /* Stay in shallow Sleep mode (WFI) if charging to allow the indicator blip logic to run.
+         * If not charging and light is off, enter Deep Sleep (Standby).
+         * Note: Changed to 0mA threshold to detect any charge. */
+        if (level_idx == 0 && timer_expiry == 0 && !is_pressing &&
+            battery_status != 2 && !is_charging) {
             Enter_Deep_Sleep();
         }
 
@@ -185,11 +221,12 @@ void PWM_LED(u16 duty){
         TIM_OC2PreloadConfig( TIM1, TIM_OCPreload_Disable );
         TIM_ARRPreloadConfig( TIM1, ENABLE );
         TIM_Cmd( TIM1, ENABLE );
-
 }
 
 void TIM2_IRQHandler(void)
 {
+    static uint8_t led_state = 0;
+
     if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
     {
         ms_ticks++;
@@ -206,18 +243,35 @@ void TIM2_IRQHandler(void)
         }
         
         /* Blink Battery LED (PC2) if battery is low (1Hz) */
-        if (battery_status == 1) {
-            if (ms_ticks % 500 == 0) GPIOC->OUTDR ^= GPIO_Pin_2;
-        } else if (charge_current_ma > 0) {
-            /* Charging: Low-power 'blip' (50ms ON every 4 seconds) */
-            if ((ms_ticks % 4000) < 50) GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
-            else GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
-        } else {
+        if (battery_status == 1 && level_idx > 0) { // Only blink if main LED is active
+            if (ms_ticks % 500 == 0) {
+                led_state = !led_state;
+                GPIO_WriteBit(GPIOC, GPIO_Pin_2, led_state ? Bit_SET : Bit_RESET);
+            }
+        } else if (is_charging) {
+            uint32_t phase = ms_ticks % 4000;
+            if (charge_current_ma > 10) {
+                /* Rapid Charge (>10mA): Double blink (150ms ON, 150ms OFF, 150ms ON every 4s) */
+                if (phase < 150 || (phase >= 300 && phase < 450)) GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
+                else GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
+            } else {
+                /* Trickle Charge: Low-power single 'blip' (200ms ON every 4 seconds) */
+                if (phase < 200) GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
+                else GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
+            }
+        } else if (battery_status != 2) {
+            /* Only force off if not blinking or blipping. 
+             * Let the main loop handle the PC2 state if in Critical Shutdown (status 2). */
             GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
         }
 
         TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
     }
+}
+
+void AWU_IRQHandler(void)
+{
+    /* Placeholder handler to allow AWU to wake the core from Standby */
 }
 
 void TIM2_Init_Tick(void) {
@@ -350,7 +404,7 @@ void ADC_Init_Vdd(void) {
     ADC_InitTypeDef ADC_InitStructure = {0};
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
-    RCC_ADCCLKConfig(RCC_PCLK2_Div8); // 48MHz/8 = 6MHz
+    RCC_ADCCLKConfig(RCC_PCLK2_Div12); // 48MHz/12 = 4MHz (More stable at low VDD)
 
     ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
     ADC_InitStructure.ADC_ScanConvMode = DISABLE;
@@ -374,6 +428,27 @@ void ADC_Init_Vdd(void) {
     ADC_Cmd(ADC1, DISABLE); // Keep off until needed
 }
 
+/* This function is called after a reset (cold boot or wake from Standby) */
+void Post_System_Setup(void) {
+    SystemInit(); 
+    ADC_Init_Vdd(); // Re-initialize ADC clock/config lost during Standby/SystemInit
+
+    /* Perform initial blocking battery check before allowing interaction or sleep */
+    ADC_Cmd(ADC1, ENABLE);
+    battery_status = Check_Battery();
+    ADC_Cmd(ADC1, DISABLE);
+
+    batt_timer = GetTick(); 
+    batt_state = 0;
+    /* Do not reset flags here! They were just correctly set by Check_Battery() above. 
+     * Resetting them would cause the MCU to exit charging mode and enter Deep Sleep immediately. */
+
+    PFIC->SCTLR &= ~(1<<2); // Clear SLEEPDEEP bit
+    TIM_Cmd(TIM2, ENABLE);
+}
+
+
+
 uint16_t Get_ADC_Val(uint8_t ch) {
     ADC_RegularChannelConfig(ADC1, ch, 1, ADC_SampleTime_30Cycles);
     ADC_SoftwareStartConvCmd(ADC1, ENABLE);
@@ -386,12 +461,12 @@ uint8_t Check_Battery(void) {
     uint32_t va2_sum = 0;
     
     /* Sample internal reference and Solar Divider (A0/PA2) */
-    for(int i=0; i<32; i++) { // Increased oversampling for 1 ohm stability
+    for(int i=0; i<4; i++) { 
         vref_sum += Get_ADC_Val(ADC_Channel_Vrefint);
         va2_sum += Get_ADC_Val(ADC_Channel_0); 
     }
-    uint16_t vref_avg = vref_sum >> 5; // Divide by 32
-    uint16_t va2_avg = va2_sum >> 5;   // Divide by 32
+    uint16_t vref_avg = vref_sum >> 2; // Divide by 4
+    uint16_t va2_avg = va2_sum >> 2;   // Divide by 4
 
     /* 1. Calculate Voltages in mV */
     /* VDD = (1.2V * 1023) / ADC_Vref */
@@ -404,8 +479,10 @@ uint8_t Check_Battery(void) {
     /* 2. Estimate Charge Current */
     if (vsolar_mv > vdd_mv) {
         charge_current_ma = (vsolar_mv - vdd_mv) / CHARGE_RESISTOR_OHMS;
+        is_charging = 1;
     } else {
         charge_current_ma = 0; // No charging if panel voltage < battery
+        is_charging = 0;
     }
 
     /* Hysteresis: If in Critical state, stay there until voltage reaches 3.4V (ADC < 361) */
@@ -413,8 +490,8 @@ uint8_t Check_Battery(void) {
         if (vref_avg > VDD_RECOVERY_THRESHOLD) return 2;
     }
 
-    if (vref_avg > VDD_CRITICAL_THRESHOLD) return 2; // VDD < 3.0V
-    if (vref_avg > VDD_LOW_THRESHOLD) return 1;      // VDD < 3.15V
+    if (vref_avg > VDD_CRITICAL_THRESHOLD) return 2; // VDD < 2.7V
+    if (vref_avg > VDD_LOW_THRESHOLD) return 1;      // VDD < 3V
     return 0;
 }
 
@@ -423,18 +500,17 @@ void Enter_Deep_Sleep(void) {
     GPIO_WriteBit(GPIOC, GPIO_Pin_1 | GPIO_Pin_2, Bit_RESET);
     
     TIM_Cmd(TIM2, DISABLE); // Stop tracking time while clocks are frozen
-
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+    /* Configure Auto-Wakeup (AWU) to check solar status every ~10 seconds */
+    /* LSI 128kHz / 61440 (PSC=1111) = 2.08Hz. Window 21 = ~10.08 second intervals */
+    PWR->AWUPSC = 0x0F; 
+    PWR->AWUWR = 21;
+    PWR->AWUCSR |= (1<<1); // AWUEN
     /* Set Standby mode bit (PDDS) and Kernel Deep Sleep bit */
-    PWR->CTLR |= PWR_CTLR_PDDS;
-    PFIC->SCTLR |= (1<<2); 
+    PWR->CTLR |= PWR_CTLR_PDDS; // Set Standby mode bit
+    PFIC->SCTLR |= (1<<2);      // Set Kernel Deep Sleep bit
     
-    __WFI(); // MCU stops here until button press
+    __WFI(); // MCU stops here until button press or AWU timer
     
-    /* Wake up: Hardware defaults to 24MHz HSI. Must restart PLL for 48MHz */
-    SystemInit(); 
-    batt_timer = 0; // Force an immediate battery check upon wake-up
-    batt_state = 0;
-    PFIC->SCTLR &= ~(1<<2);
-    TIM_Cmd(TIM2, ENABLE);
+    Post_System_Setup(); // Call common post-wakeup initialization
 }

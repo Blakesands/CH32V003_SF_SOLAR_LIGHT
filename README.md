@@ -3,12 +3,12 @@ SF Innovations Solar FlashLight User Guide
 
 Power Control
 
-    •  Power On: Press once. Default is low brightness.
+    •  Power On: Press Button once. Default is low brightness.
     
-    •  Adjust Brightness: Press repeatedly to cycle: Low ➜ Medium ➜ High.
+    •  Adjust Brightness: Press Button repeatedly to cycle: Low ➜ Medium ➜ High.
     
     •  Power Off:
-    ◦  If the light has been active for more than 3 seconds, press once to turn off.
+    ◦  If the light has been active for more than 3 seconds, press Button once to turn off.
     ◦  Otherwise, cycle through brightness levels until the light turns off.
 
 Automated Functions
@@ -21,7 +21,7 @@ Timer
 
   The timer automatically turns off the light after a set duration.
   
-    1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the Timer Indicator LED begins blinking.
+    1. Short press the Button to set desired brightness level. Then Hold the Button for approximately 1 second until the Timer Indicator LED begins blinking.
     
     2. Release button after the desired number of blinks:
     ◦  1 Blink: 1 Hour

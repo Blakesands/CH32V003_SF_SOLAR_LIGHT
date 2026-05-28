@@ -5,15 +5,13 @@ Power Control
 
     •  Power On: Press Button once. Default is low brightness.
     
-    •  Adjust Brightness: Press Button repeatedly to cycle: Low ➜ Medium ➜ High.
+    •  Adjust Brightness: Tap Button repeatedly to cycle: Low ➜ Medium ➜ High ➜ Off.
     
-    •  Power Off:
-    ◦  If the light has been active for more than 3 seconds, press Button once to turn off.
-    ◦  Otherwise, cycle through brightness levels until the light turns off.
+    •  If the light has been active for more than 3 seconds, press the Button once to turn off.
 
 Automated Functions
 
-    •  Automatic Dimming: If no timer is active, the device reduces brightness by one level every 20 minutes to preserve battery.
+    •  Battery Saver: If no timer is active, the SF Solar Light reduces brightness by one level every 20 minutes to preserve battery.
     
     •  Safety Lock: If the button is depressed for more than 30 seconds, inputs are ignored until the button is released.
 
@@ -47,9 +45,9 @@ Solar Charging
     
     Charging is confirmed by the "Blips" of the Battery Indicator.
     
-    •  1 Flash: Trickle Charging - Angle me into the sun!
+    •  1 Blip: Trickle Charging - Angle me into the sun!
     
-    •  2 Flashes: More than 10mA Charging
+    •  2 Blips: More than 10mA Charging
     
-    •  3 Flashes: More than 30mA Charging - Well Done! I should be charged by the end of the day.
+    •  3 Blips: More than 30mA Charging - Well Done! I should be charged by the end of the day.
 

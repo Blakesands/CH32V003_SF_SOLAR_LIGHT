@@ -18,7 +18,7 @@ Timer
 
 The timer automatically turns off the light after a set duration.
 
-    1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the Timer Indicator LED begins blinking.
+    1. Short press to set desired brightness level. Then Hold button for approximately 1 second until the Timer Indicator LED begins blinking.
     2. Release button after the desired number of blinks:
         ◦  1 Blink: 1 Hour
         ◦  2 Blinks: 2 Hours
@@ -26,14 +26,18 @@ The timer automatically turns off the light after a set duration.
         ◦  4 Blinks: 4 Hours
     3. The Timer Indicator LED remains illuminated while the timer is active. Manual power or brightness changes cancel the timer.
     
-Battery Status Indicator
-
-The red Battery Indicator communicates the following states:
+Battery Status
+If Battery is critical. Device will shut down automatically. Solar charging is required before further use.
+The Red Battery Indicator communicates the following states:
 
     •  Slow Blink: Battery is low. Maximum brightness is restricted to the "Medium" setting.
-    •  Rapid Flash: Battery is critical. Device will shut down automatically. Solar charging is required before further use.
     •  Periodic "Blip" (every 4 seconds): Battery is trickle charging via the solar panel.
     
 Solar Charging
 
-Turn the light off. Place the solar panel in direct sunlight. Charging is confirmed by the periodic flash of the Battery Indicator, double flash indicates >10mA charge current.
+Turn the light off. Place the solar panel in direct sunlight. 
+Charging is confirmed by the flash of the Battery Indicator.
+
+    •  1 Flash: Trickle Charging - Angle me into the sun!
+    •  2 Flashes: More than 10mA Charging
+    •  3 Flashes: More than 30mA Charging - Well Done! I should be charged by the end of the day.

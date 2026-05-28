@@ -27,6 +27,7 @@ The timer automatically turns off the light after a set duration.
     3. The Timer Indicator LED remains illuminated while the timer is active. Manual power or brightness changes cancel the timer.
     
 Battery Status
+
 If Battery is critical. Device will shut down automatically. Solar charging is required before further use.
 The Red Battery Indicator communicates the following states:
 

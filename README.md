@@ -28,7 +28,7 @@ The timer automatically turns off the light after a set duration.
     
 Battery Status
 
-If Battery is critical. Device will shut down automatically. Solar charging is required before further use.
+If the Battery is critical, the Light will shut down automatically. Solar charging is required before further use.
 The Red Battery Indicator communicates the following states:
 
     •  Slow Blink: Battery is low. Maximum brightness is restricted to the "Medium" setting.

@@ -1,34 +1,31 @@
 # CH32V003_SF_SOLAR_LIGHT
 SF Innovations Solar FlashLight User Guide
 
-Turn On & Change Brightness: Press the button to turn the light on. Each subsequent press cycles through the brightness levels:
-"Smart Off" Feature: If the light has been turned on at any level for more than 3 seconds, the next time you press the button, it will turn OFF immediately instead of making you click through the other brightness levels.
-Stuck-Button Protection: If the button is accidentally held down (e.g., if something is leaning on it in a bag or debris is stuck on it) for more than 30 seconds, the light will ignore the button press to prevent the battery from draining.
+Turn On & Change Brightness:
 
-Charging & Solar Indicator (Blue LED)
-When the solar panel is exposed to sunlight, the device automatically starts charging. To help you know how well it is charging, the blue Charge LED will flash in a specific pattern:
+  - Operation: Press the button to turn the light on. Each subsequent press cycles through the brightness levels.
+  - "Smart Off" Feature: If the light has been turned on at any level for more than 3 seconds, the next press will turn the light off.
+  - Stuck-Button Protection: If the button is held down accidentally for more than 30 seconds, the light will ignore the button press to prevent battery drain.
 
-No Blinking	No Charge (<= 2mA)	It's dark, or the panel is covered.
-1 Short Blink	Weak Charge (> 2mA)	Overcast sky or indoor light. Charging slowly.
-2 Blinks	Moderate Charge (> 15mA)	Partial sun. Charging at a decent rate.
-3 Blinks	Strong Charge (> 30mA)	Direct sunlight. Charging quickly.
-4 Blinks	Maximum Charge (> 50mA)	Peak sunlight. Charging at full speed.
+Charging & Solar Indicator (Blue LED):
+The device automatically charges when the solar panel is exposed to sunlight. The blue Charge LED flashes in specific patterns to indicate charging efficiency:
 
-Battery Health & Low Battery Indicator (Red LED)
-The device continuously monitors the health of its internal rechargeable battery. If the battery voltage drops, it takes protective actions:
+  - No Blinking: No Charge (<= 2mA). It is dark or the panel is covered.
+  - 1 Short Blink: Weak Charge (> 2mA). Overcast sky or indoor light; charging slowly.
+  - 2 Blinks: Moderate Charge (> 15mA). Partial sun; charging at a decent rate.
+  - 3 Blinks: Strong Charge (> 30mA). Direct sunlight; charging quickly.
+  - 4 Blinks: Maximum Charge (> 50mA). Peak sunlight; charging at full speed.
 
-Low Battery Warning
-What happens: The red Battery LED will blink slowly (once every second).
-Power Saving: To make the battery last longer, the maximum brightness of the main light is restricted to Level 2 (medium). If you try to select Level 3, the light will automatically dim back to Level 2.
-Critical Battery Shutdown
-What happens: The red Battery LED will flash rapidly and the main light will turn off immediately.
-Deep Sleep: The device enters a ultra-low-power "Deep Sleep" mode to protect the battery from permanent damage.
-Recovery: The light will not turn back on until the battery is recharged (by exposing the solar panel to sun) or the battery recovers to a safe voltage level.
+Battery Health & Low Battery Indicator (Red LED):
+The device monitors internal battery health and takes the following protective actions if voltage drops:
 
-Smart Power Management
-To make sure it doesn't waste energy, the light is designed to manage its own power automatically:
+  - Low Battery Warning: The red Battery LED blinks slowly (once per second). Brightness is restricted.
+  - Critical Battery Shutdown: The red Battery LED flashes and the light turns off. It will not turn back on until the battery is recharged via the solar panel.
 
-Automatic Dimming: If the light is left turned on, it will automatically dim down by one level every 20 minutes (e.g., Level 3 to Level 2, and eventually turning off).
-Ultra-Low-Power Standby: When the light is off and it is not charging (e.g., at night), the microcontroller enters a deep sleep state where it consumes very low power (~25uA).
-Periodic Solar Check: While in standby mode, the chip wakes up briefly every 1.5 seconds for less than a millisecond to check if there is sun on the solar panel. If there is no sun, it goes back to sleep instantly.
+Smart Power Management:
+The light automatically manages power consumption through the following features:
+
+  - Automatic Dimming: If left on, the light automatically dims down by one level every 20 minutes until it turns off.
+  - Ultra-Low-Power Standby: When the light is off and not charging, the microcontroller enters a deep sleep state, consuming very low power (~25uA).
+  - Periodic Solar Check: While in standby, the chip wakes up every 1.5 seconds for less than a millisecond to check for sunlight. If no sun is detected, it returns to sleep.
 
